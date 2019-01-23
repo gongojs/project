@@ -1,0 +1,11 @@
+{
+  "name": "gongo-react",
+  "version": "0.0.1",
+  "main": "index.js",
+  "license": "MIT",
+  "peerDependencies": {
+    "react": "16.8.0-alpha.1",
+    "react-dom": "16.8.0-alpha.1"
+  },
+  "dependencies": {}
+}

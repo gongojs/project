@@ -1,0 +1,30 @@
+version: '3.1'
+
+services:
+
+  api:
+    build: server
+    volumes:
+      - ./server:/home/node
+    depends_on:
+      - mongo1
+      - mongo2
+      - mongo3
+
+  mongo1:
+    image: mongo:4
+    entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "rs0" ]
+
+  mongo2:
+    image: mongo:4
+    entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "rs0" ]
+
+  mongo3:
+    image: mongo:4
+    entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "rs0" ]
+
+  #mongosetup:
+  #  image: mongo:4
+  #  volumes:
+  #    - ./scripts:/scripts
+  #  entrypoint: [ "bash", "/scripts/mongosetup.sh" ]
