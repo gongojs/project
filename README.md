@@ -58,22 +58,28 @@ Everyone loved the Meteor develop experience, but there were still issues.
 What were the main pain points and how can we try solve them?
 
 * Performance (server)
-** serverless / lambda architecture, mongodb changestreams
-** Don't keep entire client's contents in memory?
+ * serverless / lambda architecture, mongodb changestreams
+ * Don't keep entire client's contents in memory?
 
 * Performance (client)
-** Make reactivity opt-in / more explicit
-** Batch incoming data
+ * Make reactivity opt-in / more explicit
+ * Batch incoming data
 
 * Offline support
-** Offline-first support via indexeddb.
+ * Offline-first support via indexeddb.
+
+## Credits
+
+* Biggest credit is to the incredible METEOR TEAM who completely revolutionized
+the developer experience for modern web apps.  The inspiration for this project
+is to imitate the Meteor Development Experience outside of Meteor.
 
 ## Development / Get involved
 
+See [CONTRIBUTING.md](./CONTRIBUTING.md).
+
 ## Q&A
 
-1.
-1.1. Q: GraphQL does case X much better.
-1.1. A: Use GraphQL for case X.
+1. **GraphQL does case X better.**
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md).
+  Use GraphQL for case X.
