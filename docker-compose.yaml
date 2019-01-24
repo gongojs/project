@@ -3,9 +3,10 @@ version: '3.1'
 services:
 
   api:
-    build: server
+    build: server-example
     volumes:
-      - ./server:/home/node
+      - ./server-example:/home/node
+      - ./gongo-server:/home/node/node_modules/gongo-server
     depends_on:
       - mongo1
       - mongo2

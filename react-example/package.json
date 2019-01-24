@@ -10,7 +10,7 @@
     "react-scripts": "2.1.3"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "REACT_APP_GONGO_SERVER=$(../scripts/getServerIP.sh) react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"

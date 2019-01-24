@@ -13,7 +13,9 @@ function useGongoLive(cursor) {
 
 }
 
-function useGongoSub() {
+function useGongoSub(gongo, name, opts) {
+  // TODO, unsub, etc.
+  gongo.subscribe(name, opts);
 }
 
 export { useGongoLive, useGongoSub };

@@ -61,4 +61,4 @@ class Cursor {
 
 }
 
-export { Gongo };
+module.exports = { Gongo };

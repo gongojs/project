@@ -1,3 +1,5 @@
+import handlers from './handlers';
+
 // https://stackoverflow.com/questions/10593337/is-there-any-way-to-create-mongodb-like-id-strings-without-mongodb
 // TODO, rather use library
 const ObjectId = (m = Math, d = Date, h = 16, s = s => m.floor(s).toString(h)) =>
@@ -5,9 +7,79 @@ const ObjectId = (m = Math, d = Date, h = 16, s = s => m.floor(s).toString(h)) =
 
 class Database {
 
-  constructor() {
-    this.name = 'default';
+  constructor(opts) {
+    if (!opts)
+      opts = {};
+
+    this.name = opts.name || 'default';
+
     this.collections = new Map();
+    this.wsQueue = [];
+
+    // check options too
+    this.subscriptions = [];
+  }
+
+  connect(url) {
+    console.log('connected to ' + url);
+    const ws = this.ws = new WebSocket(url);
+
+    ws.onopen = () => {
+      this.wsReady = true;
+      this.wsQueue.forEach(msg => this.ws.send(JSON.stringify(msg)));
+      this.wsQueue = [];
+
+      this.subscriptions.forEach(sub => this.ws.send(JSON.stringify({
+        type: 'subscribe',
+        name: sub,
+      })))
+    }
+
+    ws.onclose = () => {
+      this.wsReady = false;
+      console.log('disconnected');
+      // TODO, better reconnect stuff
+      setTimeout(() => this.connect(url), 1000);
+    };
+
+    ws.onmessage = messageEvent => {
+      let cmd;
+      try {
+        cmd = JSON.parse(messageEvent.data);
+      } catch (e) {
+        console.log(e);
+        return;
+      }
+
+      if (handlers[cmd.type]) {
+        handlers[cmd.type].call(this, cmd);
+      } else {
+        console.log('no handler for', cmd);
+      }
+    }
+
+  }
+
+  send(msg) {
+    if (this.wsReady)
+      this.ws.send(JSON.stringify(msg))
+    else
+      this.wsQueue.push(msg);
+  }
+
+  subscribe(name) {
+    console.log('subscribe', name);
+
+    if (this.subscriptions.indexOf(name) !== -1)
+      return;
+
+    this.subscriptions.push(name);
+
+    if (this.wsReady)
+      this.send({
+        type: 'subscribe',
+        name: name,
+      });
   }
 
   collection(name) {
@@ -151,7 +223,6 @@ class ChangeStream {
 }
 
 const db = new Database();
-
 export { Database };
 
 export default db;

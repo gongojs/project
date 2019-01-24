@@ -4,6 +4,10 @@ import './App.css';
 import gongo from "gongo-client";
 import { useGongoLive, useGongoSub } from "gongo-react";
 
+const GONGO_SERVER_URL = 'ws://' + process.env.REACT_APP_GONGO_SERVER + ':3000';
+gongo.connect(GONGO_SERVER_URL);
+
+window.gongo = gongo;
 const todos = window.todos = gongo.collection('todos');
 todos.insert({ title: 'client' });
 
@@ -19,7 +23,7 @@ function TodoList() {
   const todos = useGongoLive( gongo.collection('todos').find() );
 
   // Tell the server to keep us up to date as long as component is rendered
-  useGongoSub('todos');
+  useGongoSub(gongo, 'todos');
 
   return (
     <div>
