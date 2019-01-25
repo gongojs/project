@@ -29,8 +29,25 @@ module.exports = {
 
   insert(cmd) {
     delete cmd.doc._pendingSince;
+    cmd.doc._id = this.mongoObjectID(cmd.doc._id);
+    // console.log('insert', cmd.coll, cmd.doc);
     this.db.collection(cmd.coll).insertOne(cmd.doc);
-    console.log('insert', cmd.coll, cmd.doc);
+  },
+
+  remove(cmd) {
+    if (typeof cmd.query === 'string')
+      cmd.query = { _id: this.mongoObjectID(cmd.query) };
+
+    // console.log('remove', cmd.coll, cmd.query);
+    this.db.collection(cmd.coll).removeMany(cmd.query);
+  },
+
+  update(cmd) {
+    if (typeof cmd.query === 'string')
+      cmd.query = { _id: this.mongoObjectID(cmd.query) };
+
+    // console.log('update', cmd.coll, cmd.query);
+    this.db.collection(cmd.coll).updateMany(cmd.query, cmd.update);
   }
 
 };

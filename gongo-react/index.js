@@ -14,7 +14,7 @@ function useGongoLive(cursorFunc) {
   // This part will only get run once on mount
 
   const cursor = cursorOrResults;
-  console.log('useGongoLive', cursor);
+  // console.log('useGongoLive', cursor);
 
   if (typeof cursor !== 'object' || !cursor.constructor || cursor.constructor.name !== 'Cursor')
     throw new Error("useGongoLive function should return a cursor, not "
@@ -32,7 +32,7 @@ function useGongoLive(cursorFunc) {
 
 function useGongoSub(gongo, name, opts) {
   useEffect(() => {
-    console.log('useGongoSub', name);
+    // console.log('useGongoSub', name);
     gongo.subscribe(name, opts);
     return () => {
       console.log('TODO unmount');

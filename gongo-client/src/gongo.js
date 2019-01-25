@@ -68,7 +68,7 @@ class Database {
   }
 
   subscribe(name) {
-    console.log('subscribe', name);
+    //console.log('subscribe', name);
 
     if (this.subscriptions.indexOf(name) !== -1)
       return;
@@ -151,31 +151,53 @@ class Collection {
 
     } else if (typeof idOrSelector === 'object') {
 
-      throw new Erro('not supported yet');
+      throw new Erro('remove by selector not supported yet');
     } else {
-      throw new Error();
+      throw new Error('remove called with invalid argument: '
+        + JSON.stringify(idOrSelector));
     }
   }
 
   remove(idOrSelector) {
-    this_remove(idOrSelector);
+    this._remove(idOrSelector);
+    this.db.send({
+      type: 'remove',
+      coll: this.name,
+      query: idOrSelector
+    });
   }
 
   _update(idOrSelector, newDocOrChanges) {
+    const _id = idOrSelector;
+    const oldDoc = this.documents.get(_id);
+
+    // TODO think again about how to verify returned data
+    if (!oldDoc)
+      return;
+
+    // XXX TODO
+    const newDoc = { ...oldDoc, ...newDocOrChanges.$set };
+
+    this.documents.set(_id, newDoc);
+    this.sendChanges('update', _id, {
+      updateDescription: {
+        updatedFields: newDocOrChanges.$set,
+        removedFields: []
+      }
+    });
+
+    return newDoc;
+  }
+
+  update(idOrSelector, newDocOrChanges) {
     if (typeof idOrSelector === 'string') {
 
-      const _id = idOrSelector;
-      const oldDoc = this.documents.get(_id);
-
-      // XXX TODO
-      const newDoc = { ...oldDoc, ...newDocOrChanges.$set };
-
-      this.documents.set(_id, newDoc);
-      this.sendChanges('update', _id, {
-        updateDescription: {
-          updatedFields: newDocOrChanges.$set,
-          removedFields: []
-        }
+      const newDoc = this._update(idOrSelector, newDocOrChanges);
+      this.db.send({
+        type: 'update',
+        coll: this.name,
+        query: idOrSelector,
+        update: newDocOrChanges
       });
 
     } else if (typeof idOrSelector === 'object') {

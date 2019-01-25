@@ -31,6 +31,7 @@ class GongoServer {
         throw err;
 
       this.db = this.mongoClient.db();
+      this.mongoObjectID = require('mongodb').ObjectID;
     });
 
   }
@@ -129,13 +130,40 @@ class GongoServer {
     const _id = change.documentKey._id;
 
     if (change.operationType === 'insert') {
+
       this.sendToMatchingWatchers(coll, {
         type: 'insert',
         coll: coll,
         doc: doc,
       });
+
+    } else if (change.operationType === 'delete') {
+
+      // TODO.  hmm.  should we recreate with __deleted?  warn?
+      //console.log('onChange delete', coll, _id);
+      this.sendToMatchingWatchers(coll, {
+        type: 'delete',
+        coll: coll,
+        _id,
+      });
+
+    } else if (change.operationType === 'update') {
+
+      //console.log('onChange update', coll, _id);
+      this.sendToMatchingWatchers(coll, {
+        type: 'update',
+        coll: coll,
+        _id,
+        update: {
+          $set: change.updateDescription.updatedFields,
+          $unset: change.updateDescription.removedFields
+        }
+      });
+
     } else {
+
       console.log('unknown operation', change);
+
     }
   }
 
