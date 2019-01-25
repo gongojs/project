@@ -1,41 +1,13 @@
 const WebSocket = require('ws');
 const MongoClient = require('mongodb').MongoClient;
 const Gongo = require('./gongo').Gongo;
+const handlers = require('./handlers');
 
 /*
   TODO
     - heartbeats
  */
 
-const handlers = {
-  subscribe(cmd) {
-      console.log(cmd.name, this.pubs);
-    if (this.pubs[cmd.name]) {
-      const result = this.pubs[cmd.name](this.db);
-      const mCmd = result.cursorState.cmd;
-      const [ dbName, collName ] = mCmd.find.split('.');
-      const query = mCmd.query;
-
-      if (1 /* TODO isMongoCursor */) {
-        // TODO, getNext async loop?
-        result.toArray((err, results) => {
-          console.log('results', results);
-          // this.send(cmd.sid, { type: 'sub-results', name: cmd.name, results });
-
-          this.send(cmd.sid, { type: 'subscription-start', name: cmd.name });
-          for (let row of results)
-            this.send(cmd.sid, { type: 'insert', coll: collName, data: row });
-          this.send(cmd.sid, { type: 'subscription-ready' });
-
-          this.liveQueryOn(cmd, collName, query);
-        });
-
-      }
-    } else {
-      console.log('pub for invalid');
-    }
-  }
-};
 
 class GongoServer {
 
@@ -75,7 +47,10 @@ class GongoServer {
     wss.on('connection', ws => {
       const sid = this.idCount++;
       this.sockets.push(ws);
+
       ws.sid = sid;
+      ws.watching = [];
+
       console.log('connection from ' + sid);
 
       ws.on('message', msg => {
@@ -104,12 +79,11 @@ class GongoServer {
     cmd.ws = ws;
     cmd.sid = sid;
 
-    const toLog = Object.assign({}, cmd);
-    delete toLog.ws;
-    console.log(toLog);
-
     if (handlers[cmd.type])
-      handlers[cmd.type].call(this, cmd);
+      return handlers[cmd.type].call(this, cmd);
+
+    delete cmd.ws;
+    console.log("Unknown message", cmd);
   }
 
   publish(name, func) {
@@ -138,9 +112,6 @@ class GongoServer {
       this.watchers[coll][serializedQuery] = { query, watchers: new Set() };
 
     this.watchers[coll][serializedQuery].watchers.add(cmd.ws);
-
-    if (!cmd.ws.watching)
-      cmd.ws.watching = [];
     cmd.ws.watching.push(this.watchers[coll][serializedQuery]);
   }
 
@@ -156,13 +127,12 @@ class GongoServer {
     const doc = change.fullDocument;
     const { db, coll } = change.ns;
     const _id = change.documentKey._id;
-    console.log(change);
 
     if (change.operationType === 'insert') {
       this.sendToMatchingWatchers(coll, {
         type: 'insert',
         coll: coll,
-        data: doc,
+        doc: doc,
       });
     } else {
       console.log('unknown operation', change);

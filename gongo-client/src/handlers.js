@@ -1,7 +1,8 @@
 export default {
 
   insert(cmd) {
-    this.collection(cmd.coll)._insert(cmd.data);
+    //console.log(cmd);
+    this.collection(cmd.coll)._insert(cmd.doc);
   }
 
 }

@@ -130,9 +130,16 @@ class Collection {
       document = { _id: ObjectId(), ...document };
     }
 
-    document._pendingSince = Date.now();
+    const toSendDoc = Object.assign({}, document);
 
+    document._pendingSince = Date.now();
     this._insert(document);
+
+    this.db.send({
+      type: 'insert',
+      coll: this.name,
+      doc: toSendDoc
+    });
   }
 
   _remove(idOrSelector) {

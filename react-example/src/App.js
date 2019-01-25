@@ -20,7 +20,7 @@ function submitTodo(e) {
 
 function TodoList() {
   // This is a reactive realtime live query (of local db) using React Hooks
-  const todos = useGongoLive( gongo.collection('todos').find() );
+  const todos = useGongoLive( () => gongo.collection('todos').find() );
 
   // Tell the server to keep us up to date as long as component is rendered
   useGongoSub(gongo, 'todos');
