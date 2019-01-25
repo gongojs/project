@@ -12,7 +12,23 @@ Temporary name.
 * Realtime / live queries / reactive queries
 * Great experience to use with React, etc.
 
-## Example usage (react)
+## Quick Start
+
+### Server
+
+```js
+const GongoServer = require('gongo-server').GongoServer;
+
+const server = new GongoServer({
+  mongoUrl: 'mongodb://mongo1,mongo2,mongo3/gongo?replicaSet=rs0'
+});
+
+server.listen(3000);
+
+server.publish('todos', db => db.collection('todos').find());
+```
+
+### Client (react)
 
 ```js
 import React from 'react';
@@ -20,7 +36,6 @@ import gongo from 'gongo-client';
 import { useGongoLive, useGongoSub } from 'gongo-react';
 
 const todos = window.todos = gongo.collection('todos');
-todos.insert({ title: 'client' });
 
 function submitTodo(e) {
   e.preventDefault();
@@ -31,7 +46,7 @@ function submitTodo(e) {
 
 function TodoList() {
   // Reactive realtime live query (of local db / subscription) using React Hooks
-  const todos = useGongoLive( todos.find() );
+  const todos = useGongoLive( () => todos.find() );
 
   // Tell the server to keep us up to date as long as component is rendered
   useGongoSub(gongo, 'todos');
@@ -57,7 +72,7 @@ function TodoList() {
 export default TodoList;
 ```
 
-![gifrecord_2019-01-23_143907](https://user-images.githubusercontent.com/381978/51607416-3aa64a80-1f1d-11e9-930c-6e24a5826b26.gif)
+![demo](./demo.gif)
 
 ## Backstory
 

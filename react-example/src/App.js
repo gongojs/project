@@ -9,7 +9,6 @@ gongo.connect(GONGO_SERVER_URL);
 
 window.gongo = gongo;
 const todos = window.todos = gongo.collection('todos');
-todos.insert({ title: 'client' });
 
 function submitTodo(e) {
   e.preventDefault();
