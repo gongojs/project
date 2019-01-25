@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 function useGongoLive(cursor) {
 
@@ -14,8 +14,12 @@ function useGongoLive(cursor) {
 }
 
 function useGongoSub(gongo, name, opts) {
-  // TODO, unsub, etc.
-  gongo.subscribe(name, opts);
+  useEffect(() => {
+    gongo.subscribe(name, opts);
+    return () => {
+      console.log('TODO unmount');
+    }
+  }, []);
 }
 
 export { useGongoLive, useGongoSub };
