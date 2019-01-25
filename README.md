@@ -6,6 +6,8 @@ Mongo Live Queries with Meteor convenience and Severless scalability
 
 Temporary name.
 
+Copyright (c) 2019 by Gadi Cohen.  Released under the [MIT license](./LICENSE.txt).
+
 ## Features / TODO
 
 * Use Mongo once, on the client, with offline support
@@ -72,7 +74,7 @@ function TodoList() {
 export default TodoList;
 ```
 
-![demo](./demo.gif)
+![demo](./docs/demo.gif)
 
 ## Backstory
 
