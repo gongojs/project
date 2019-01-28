@@ -1,0 +1,28 @@
+# gongo vs Meteor
+
+To be clear, the concept and data flow is very similar to Meteor.  I spent
+years working with Meteor and have a lot of love for the team and community.
+
+If, for whatever reason, you choose not to use Meteor for a particular project,
+this package aims to return the joyful developer experience to creating apps
+while addressing some of the shortcomings.
+
+## Issues
+
+What are some issues this package should address? (WIP)
+
+* Performance (server)
+ * mongodb changestreams
+ * allow for serverless / lambda architecture
+ * dont cover all cases, only performant ones.
+   * don't keep track of what clients have in memory
+
+* Performance (client)
+ * Make reactivity opt-in / more explicit
+ * Batch incoming data
+
+* Offline support
+ * Offline-first support via indexeddb.
+
+* Security
+ * Address allow/deny issues

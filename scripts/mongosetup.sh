@@ -1,6 +1,10 @@
 #!/bin/bash
 
+echo mongosetup.sh, waiting 10s....
+
 sleep 10
+
+echo mongosetup.sh starting rs.initiatie()...
 
 mongo --host mongo1:27017 <<EOF
    rs.initiate( {

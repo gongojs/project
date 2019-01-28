@@ -2,6 +2,10 @@
 
 ## data structure
 
+the below is purely for streamlined offline syncing, completely avoidable if
+all we wanted was live queries and to keep a local (but connected) collection
+in sync.
+
 * `__mtime` attribute on docs
  * helps us keep offline collections up-to-date without resyncing entire collection
  * could let us use polling for cheaper / hobby projects with free mongo

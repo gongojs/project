@@ -2,17 +2,18 @@
 
 # gongo
 
-Mongo Live Queries with Meteor convenience and Severless scalability
-
-Temporary name.
+Reactive, realtime queries supporting offline and a 👌 developer experience.
 
 Copyright (c) 2019 by Gadi Cohen.  Released under the [MIT license](./LICENSE.txt).
 
 ## Features / TODO
 
-* Use Mongo once, on the client, with offline support
-* Realtime / live queries / reactive queries
+* Use Mongo once, on the client
+* Reactive, realtime (live) queries
+* Optimistic updates for free
+* Persists offline (with IndexedDB)
 * Great experience to use with React, etc.
+* Highly scalable
 
 ## Quick Start
 
@@ -76,25 +77,37 @@ export default TodoList;
 
 ![demo](./docs/demo.gif)
 
+## Deployment
+
+More instructions coming as needed.
+
+* Database
+  * MongoDB
+    * Note that Mongodb.com Atlas's
+      [free forever tier](https://www.mongodb.com/cloud/atlas/pricing)
+      includes a replSet and works great.  
+  * Other databases could be supported in the future.
+
+* Server
+  * Host anywhere you can run node.
+  * Zeit.co
+    * Works great on Now 1.0;  Planned to work with Now 2.0 once WebSockets
+      become available.
+
 ## Backstory
 
 TODO
 
 ### How it differs from Meteor
 
-Everyone loved the Meteor develop experience, but there were still issues.
-What were the main pain points and how can we try solve them?
+To be clear, the concept and data flow is very similar to Meteor.  I spent
+years working with Meteor and have a lot of love for the team and community.
 
-* Performance (server)
- * serverless / lambda architecture, mongodb changestreams
- * Don't keep entire client's contents in memory?
+If, for whatever reason, you choose not to use Meteor for a particular project,
+this package aims to return the joyful developer experience to creating apps
+while addressing some of the shortcomings.
 
-* Performance (client)
- * Make reactivity opt-in / more explicit
- * Batch incoming data
-
-* Offline support
- * Offline-first support via indexeddb.
+More in [meteor.md](./docs/meteor.md).
 
 ## Credits
 
@@ -108,6 +121,5 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## Q&A
 
-1. **GraphQL does case X better.**
-
-  Use GraphQL for case X.
+1. **GraphQL does case X better.**  
+Use GraphQL for case X.
