@@ -1,12 +1,18 @@
 #!/bin/bash
 
-echo mongosetup.sh, waiting 10s....
+MONGO1="mongo1:27017"
 
-sleep 10
+echo "Waiting for $MONGO1 to accept connections."
 
-echo mongosetup.sh starting rs.initiatie()...
+until mongo --host $MONGO1 --eval 'print("Successful connection")'
+  do
+    sleep 1
+    echo -n .
+  done
 
-mongo --host mongo1:27017 <<EOF
+echo "mongosetup.sh starting rs.initiate()..."
+
+mongo --host $MONGO1 <<EOF
    rs.initiate( {
         "_id": "rs0",
         "version": 1,
@@ -34,4 +40,7 @@ mongo --host mongo1:27017 <<EOF
     rs.status()
 EOF
 
-echo mongosetup.sh done.
+echo "Waiting 10s for settings to sync".
+sleep 10
+
+echo "mongosetup.sh done."
