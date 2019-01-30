@@ -2,15 +2,6 @@
 
 ## Initial Setup
 
-### MongoDB
-
-MongoDB ChangeStreams require a ReplicaSet.  We suggest using docker to launch
-3 containerized MongoDB instances.
-
-```bash
-$ docker-compose -f docker-compose-mongosetup.yaml up --abort-on-container-exit
-```
-
 ### yarn link
 
 Use local development versions of the various packages in the app and other packages.
@@ -35,6 +26,11 @@ Don't worry about using `yarn link` for the server.  The `serer-example` uses th
 ```bash
 $ docker-compose up
 ```
+
+This will bring up both a mongo instance and the gongo example server with
+network communication between them.  On first connect, the gongo server will
+automatically configure the mongo replicaSet for you (when
+`NODE_ENV=development`).
 
 ### Client
 

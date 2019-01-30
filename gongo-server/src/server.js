@@ -8,7 +8,6 @@ const handlers = require('./handlers');
     - heartbeats
  */
 
-
 class GongoServer {
 
   constructor(opts) {
@@ -27,8 +26,36 @@ class GongoServer {
   mongoConnect() {
     this.mongoClient = new MongoClient(this.mongoUrl, { useNewUrlParser: true });
     this.mongoClient.connect(err => {
-      if (err)
+      if (err) {
+        if (process.env.NODE_ENV === 'development'
+            && err.message === 'no primary found in replicaset or invalid replica set name') {
+
+              console.log(err.name + ': ' + err.message);
+              console.log("As a convenience, we'll create one for you (since NODE_ENV=='development')");
+              const url = this.mongoUrl.replace(/\?replicaSet=rs0$/, '');
+              const client = new MongoClient(url, { useNewUrlParser: true });
+              client.connect(err => {
+                if (err) throw err;
+                const db = client.db();
+                const adminDb = db.admin();
+                const conf = { _id: "rs0", members: [{_id: 0, host: "mongo:27017"}] };
+                adminDb.command({ replSetInitiate: conf }, (err, info) => {
+                  if (err) throw err;
+                  if (info.ok) {
+                    console.log("Success");
+                    client.close();
+                    setTimeout(() => this.mongoConnect(), 5000);
+                  } else {
+                    console.log(info);
+                    throw new Error("Unexpected output from rs.initiate()");
+                  }
+                });
+              });
+
+              return;
+        }
         throw err;
+      }
 
       this.db = this.mongoClient.db();
       this.mongoObjectID = require('mongodb').ObjectID;

@@ -1,7 +1,7 @@
 const GongoServer = require('gongo-server').GongoServer;
 
 const server = new GongoServer({
-  mongoUrl: 'mongodb://mongo1,mongo2,mongo3/gongo?replicaSet=rs0'
+  mongoUrl: 'mongodb://mongo/gongo?replicaSet=rs0'
 });
 
 server.listen(3000);
