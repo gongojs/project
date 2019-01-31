@@ -4,8 +4,7 @@ import './App.css';
 import gongo from "gongo-client";
 import { useGongoLive, useGongoSub } from "gongo-react";
 
-const GONGO_SERVER_URL = 'ws://' + process.env.REACT_APP_GONGO_SERVER + ':3000';
-gongo.connect(GONGO_SERVER_URL);
+gongo.connect(process.env.REACT_APP_GONGO_SERVER);
 
 window.gongo = gongo;
 const todos = window.todos = gongo.collection('todos');
