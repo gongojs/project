@@ -2,5 +2,8 @@
   "name": "gongo-client",
   "version": "0.0.1",
   "main": "src/index.js",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "sift": "^7.0.1"
+  }
 }

@@ -1,4 +1,5 @@
 import handlers from './handlers';
+import sift from "sift";
 
 // https://stackoverflow.com/questions/10593337/is-there-any-way-to-create-mongodb-like-id-strings-without-mongodb
 // TODO, rather use library
@@ -140,31 +141,49 @@ class Collection {
       coll: this.name,
       doc: toSendDoc
     });
+
+    return toSendDoc;
   }
 
-  _remove(idOrSelector) {
-    if (typeof idOrSelector === 'string') {
+  _remove(_id) {
+    if (typeof _id !== 'string')
+      throw new Error("_remove(_id) expects a string id only, not: "
+        + JSON.stringify(_id));
 
-      const _id = idOrSelector;
-      this.documents.delete(_id);
-      this.sendChanges('delete', _id);
-
-    } else if (typeof idOrSelector === 'object') {
-
-      throw new Erro('remove by selector not supported yet');
-    } else {
-      throw new Error('remove called with invalid argument: '
-        + JSON.stringify(idOrSelector));
-    }
+    this.documents.delete(_id);
+    this.sendChanges('delete', _id);
   }
 
   remove(idOrSelector) {
-    this._remove(idOrSelector);
-    this.db.send({
-      type: 'remove',
-      coll: this.name,
-      query: idOrSelector
-    });
+    if (typeof idOrSelector === 'string') {
+
+      this._remove(idOrSelector);
+      this.db.send({
+        type: 'remove',
+        coll: this.name,
+        query: idOrSelector
+      });
+
+    } else if (typeof idOrSelector === 'object') {
+
+      const query = sift(idOrSelector);
+      for (let pair of this.documents) {
+        if (query(pair[1])) {
+          this._remove(pair[0]);
+          this.db.send({
+            type: 'remove',
+            coll: this.name,
+            query: pair[0]
+          });
+        }
+      }
+
+    } else {
+
+      throw new Error('remove() called with invalid argument: '
+        + JSON.stringify(idOrSelector));
+
+    }
   }
 
   _update(idOrSelector, newDocOrChanges) {
@@ -202,7 +221,18 @@ class Collection {
 
     } else if (typeof idOrSelector === 'object') {
 
-      throw new Erro('not supported yet');
+      const query = sift(idOrSelector);
+      for (let pair of this.documents)
+        if (query(pair[1])) {
+          const newDoc = this._update(pair[0], newDocOrChanges);
+          this.db.send({
+            type: 'update',
+            coll: this.name,
+            query: pair[0],
+            update: newDocOrChanges
+          });
+        }
+
     } else {
       throw new Error();
     }
@@ -214,12 +244,15 @@ class Cursor {
 
   constructor(collection, query) {
     this.collection = collection;
+    this._query = query;
+    this.query = sift(query || {});
   }
 
   toArray() {
     const out = [];
     for (let pair of this.collection.documents)
-      out.push(pair[1]);
+      if (this.query(pair[1]))
+        out.push(pair[1]);
     return out;
   }
 
