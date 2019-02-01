@@ -2,6 +2,11 @@
 # yarn lockfile v1
 
 
+arson@^0.2.6:
+  version "0.2.6"
+  resolved "https://registry.yarnpkg.com/arson/-/arson-0.2.6.tgz#0a487ebcbbb1db1a3d5889821d44478ecd054cd1"
+  integrity sha512-wVRnIfjOaCWu3jrf3j1CU/eotDf7tuM34cBswo32EwyLPaMiaWgETfROdYVv47VWEbWSOaZaDnkypGQtQduLbw==
+
 async-limiter@~1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/async-limiter/-/async-limiter-1.0.0.tgz#78faed8c3d074ab81f22b4e985d79e8738f720f8"

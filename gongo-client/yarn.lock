@@ -2,6 +2,16 @@
 # yarn lockfile v1
 
 
+arson@^0.2.6:
+  version "0.2.6"
+  resolved "https://registry.yarnpkg.com/arson/-/arson-0.2.6.tgz#0a487ebcbbb1db1a3d5889821d44478ecd054cd1"
+  integrity sha512-wVRnIfjOaCWu3jrf3j1CU/eotDf7tuM34cBswo32EwyLPaMiaWgETfROdYVv47VWEbWSOaZaDnkypGQtQduLbw==
+
+bson-objectid@^1.2.4:
+  version "1.2.4"
+  resolved "https://registry.yarnpkg.com/bson-objectid/-/bson-objectid-1.2.4.tgz#5932784c407dc033d8e1064c31f2ce3005d5a00b"
+  integrity sha512-z511nO3HgvLpB0Ax2+kfM2HRfgGKB0VbMnRKh5yNM9Eoh2o1/DRFXBrsoTpvjR09vNIHUMUmcwFFYhSU+0PBGQ==
+
 sift@^7.0.1:
   version "7.0.1"
   resolved "https://registry.yarnpkg.com/sift/-/sift-7.0.1.tgz#47d62c50b159d316f1372f8b53f9c10cd21a4b08"

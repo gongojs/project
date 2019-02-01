@@ -1,10 +1,14 @@
-import handlers from './handlers';
+import ARSON from 'arson';
 import sift from "sift";
+import ObjectID from 'bson-objectid';
 
-// https://stackoverflow.com/questions/10593337/is-there-any-way-to-create-mongodb-like-id-strings-without-mongodb
-// TODO, rather use library
-const ObjectId = (m = Math, d = Date, h = 16, s = s => m.floor(s).toString(h)) =>
-  s(d.now() / 1000) + ' '.repeat(h).replace(/./g, () => s(m.random() * h));
+import handlers from './handlers';
+
+// Expects similar code in gongo-server/server.js
+ARSON.registerType('ObjectID', {
+  deconstruct: objId => ObjectID.isValid(objId) && [objId.toJSON()],
+  reconstruct: args => args && new ObjectID(args[0])
+});
 
 class Database {
 
@@ -27,10 +31,10 @@ class Database {
 
     ws.onopen = () => {
       this.wsReady = true;
-      this.wsQueue.forEach(msg => this.ws.send(JSON.stringify(msg)));
+      this.wsQueue.forEach(msg => this.ws.send(ARSON.stringify(msg)));
       this.wsQueue = [];
 
-      this.subscriptions.forEach(sub => this.ws.send(JSON.stringify({
+      this.subscriptions.forEach(sub => this.ws.send(ARSON.stringify({
         type: 'subscribe',
         name: sub,
       })))
@@ -46,7 +50,7 @@ class Database {
     ws.onmessage = messageEvent => {
       let cmd;
       try {
-        cmd = JSON.parse(messageEvent.data);
+        cmd = ARSON.parse(messageEvent.data);
       } catch (e) {
         console.log(e);
         return;
@@ -63,7 +67,7 @@ class Database {
 
   send(msg) {
     if (this.wsReady)
-      this.ws.send(JSON.stringify(msg))
+      this.ws.send(ARSON.stringify(msg))
     else
       this.wsQueue.push(msg);
   }
@@ -121,14 +125,15 @@ class Collection {
     if (!document._id)
       throw new Error('no doc._id ' + JSON.stringify(document));
 
-    this.documents.set(document._id, document);
+    const strId = typeof document._id === 'string' ? document._id : document._id.toString();
+    this.documents.set(strId, document);
     this.sendChanges('insert', document._id, { fullDocument: document });
   }
 
   insert(document) {
     if (!document._id) {
       // Add _id, ensure it's first field in object
-      document = { _id: ObjectId(), ...document };
+      document = { _id: new ObjectID(), ...document };
     }
 
     const toSendDoc = Object.assign({}, document);

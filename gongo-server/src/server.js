@@ -1,7 +1,17 @@
 const WebSocket = require('ws');
 const MongoClient = require('mongodb').MongoClient;
+const ARSON = require('arson');
+
 const Gongo = require('./gongo').Gongo;
 const handlers = require('./handlers');
+
+const ObjectID = require('mongodb').ObjectID
+
+// Expects similar code in gongo-client/gongo.js
+ARSON.registerType('ObjectID', {
+  deconstruct: objId => ObjectID.isValid(objId) && [objId.toJSON()],
+  reconstruct: args => args && new ObjectID(args[0])
+});
 
 /*
   TODO
@@ -58,7 +68,7 @@ class GongoServer {
       }
 
       this.db = this.mongoClient.db();
-      this.mongoObjectID = require('mongodb').ObjectID;
+      this.mongoObjectID = ObjectID;
     });
 
   }
@@ -97,7 +107,7 @@ class GongoServer {
   onMsg(ws, sid, raw) {
     let cmd;
     try {
-      cmd = JSON.parse(raw);
+      cmd = ARSON.parse(raw);
     } catch (e) {
       console.log(sid, raw);
       console.log(e);
@@ -120,7 +130,7 @@ class GongoServer {
 
   send(dest, raw) {
     const ws = typeof dest === 'number' ? this.sockets[dest] : dest;
-    ws.send(JSON.stringify(raw));
+    ws.send(ARSON.stringify(raw));
   }
 
   liveQueryOn(cmd, coll, query) {

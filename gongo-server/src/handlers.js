@@ -29,7 +29,6 @@ module.exports = {
 
   insert(cmd) {
     delete cmd.doc._pendingSince;
-    cmd.doc._id = this.mongoObjectID(cmd.doc._id);
     // console.log('insert', cmd.coll, cmd.doc);
     this.db.collection(cmd.coll).insertOne(cmd.doc);
   },

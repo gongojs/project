@@ -4,6 +4,8 @@
   "main": "src/index.js",
   "license": "MIT",
   "dependencies": {
+    "arson": "^0.2.6",
+    "bson-objectid": "^1.2.4",
     "sift": "^7.0.1"
   }
 }
