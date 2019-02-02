@@ -1,8 +1,7 @@
 import React, { Component } from 'react';
 import './App.css';
 
-import gongo from "gongo-client";
-import { useGongoLive, useGongoSub } from "gongo-react";
+import { gongo, useGongoLive, useGongoSub } from "gongo-react";
 
 gongo.connect(process.env.REACT_APP_GONGO_SERVER);
 

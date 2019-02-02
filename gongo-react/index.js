@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 
+// Just to re-export
+import gongo from 'gongo-client';
+
 function useGongoLive(cursorFunc) {
   if (typeof cursorFunc !== 'function')
     throw new Error("useGongoLive expects a function that returns a cursor, "
@@ -40,4 +43,4 @@ function useGongoSub(gongo, name, opts) {
   }, []);
 }
 
-export { useGongoLive, useGongoSub };
+export { gongo, useGongoLive, useGongoSub };

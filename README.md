@@ -35,8 +35,7 @@ server.publish('todos', db => db.collection('todos').find());
 
 ```js
 import React from 'react';
-import gongo from 'gongo-client';
-import { useGongoLive, useGongoSub } from 'gongo-react';
+import { gongo, useGongoLive, useGongoSub } from 'gongo-react';
 
 const todos = window.todos = gongo.collection('todos');
 
