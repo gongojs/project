@@ -2,22 +2,26 @@
 
 ## Initial Setup
 
-### yarn link
+### yarn workspace setup
 
-Use local development versions of the various packages in the app and other packages.
+#### client
 
 ```bash
-for lib in gongo-client gongo-react ; do
-  cd $lib
-  yarn link
-  cd ..
-done
-
-cd react-example
-yarn link gongo-client gongo-react
+$ yarn install    # in gongo root
 ```
 
-Don't worry about using `yarn link` for the server.  The `serer-example` uses the local `gongo-server` via docker.
+It will install all necessary deps and symlinks for `gongo-client`,
+`gongo-react` and `react-example`.
+
+#### server
+
+Not using workspaces.  `server-example` uses the local `gongo-server` via
+docker.  So just
+
+```bash
+$ cd server-example
+$ yarn install
+```
 
 ## Usage
 
