@@ -7,6 +7,7 @@ gongo.connect(process.env.REACT_APP_GONGO_SERVER);
 
 window.gongo = gongo;
 const todos = window.todos = gongo.collection('todos');
+todos.persist();
 
 function submitTodo(e) {
   e.preventDefault();

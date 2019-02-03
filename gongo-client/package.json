@@ -6,6 +6,7 @@
   "dependencies": {
     "arson": "^0.2.6",
     "bson-objectid": "^1.2.4",
+    "idb": "^3.0.2",
     "sift": "^7.0.1"
   }
 }

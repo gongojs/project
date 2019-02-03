@@ -1,7 +1,9 @@
 import ARSON from 'arson';
 import sift from "sift";
 import ObjectID from 'bson-objectid';
+import { openDb, deleteDb } from 'idb';
 
+import { Log } from './utils';
 import handlers from './handlers';
 import Subscription from './subscription';
 
@@ -10,6 +12,20 @@ ARSON.registerType('ObjectID', {
   deconstruct: objId => ObjectID.isValid(objId) && [objId.toJSON()],
   reconstruct: args => args && new ObjectID(args[0])
 });
+
+const log = new Log('gongo-client');
+
+// Fix ObjectIDs after restore from IDB
+function fixObjIds(obj) {
+  Object.keys(obj).forEach(key => {
+    // for now just top-level
+    if (typeof obj[key] === 'object') {
+      const keys = Object.keys(obj[key]);
+      if (keys.length === 1 && keys[0] === 'id')
+        obj[key] = new ObjectID(obj[key].id)
+    }
+  });
+}
 
 class Database {
 
@@ -24,14 +40,16 @@ class Database {
 
     // check options too
     this.subscriptions = {};
+
+    this.idbIsOpen = false;
   }
 
   connect(url) {
-    console.log('connecting to ' + url);
+    log.debug('Connecting to ' + url + '...');
     const ws = this.ws = new WebSocket(url);
 
     ws.onopen = () => {
-      console.log('connected');
+      log.debug('Connected to ' + url);
       this.wsReady = true;
       this.wsQueue.forEach(msg => this.ws.send(ARSON.stringify(msg)));
       this.wsQueue = [];
@@ -45,7 +63,7 @@ class Database {
 
     ws.onclose = () => {
       this.wsReady = false;
-      console.log('disconnected');
+      log.warn('Disconnected from ' + url);
       // TODO, better reconnect stuff
       setTimeout(() => this.connect(url), 1000);
     };
@@ -98,6 +116,34 @@ class Database {
     return this.collections.get(name);
   }
 
+  idbCheckInit() {
+    if (this.idbIsOpen)
+      throw new Error("idb already open");
+    else
+      setTimeout( () => this.idbOpen(), 0 );
+  }
+
+  async idbOpen() {
+    log.debug('Opening IDB "gongo" database');
+    this.idbIsOpen = true;
+    this.idbPromise = openDb('gongo', 1, upgradeDB => {
+      log.info('Creating IDB "gongo" database');
+      this.collections.forEach( (col,name) => upgradeDB.createObjectStore(name) );
+    });
+
+    const db = await this.idbPromise;
+    this.collections.forEach( async (col, name) => {
+      log.debug('Begin populating from IndexedDB of ' + name);
+      const docs = await db.transaction(name).objectStore(name).getAll();
+      docs.forEach(document => {
+        fixObjIds(document);
+        const strId = typeof document._id === 'string' ? document._id : document._id.toString();
+        col.documents.set(strId, document);
+      });
+      log.debug('Finished populating from IndexedDB of ' + name);
+    });
+  }
+
 }
 
 class Collection {
@@ -108,6 +154,24 @@ class Collection {
     this.documents = new Map();
     this.changestreams = [];
     this.pendingOps = [];
+    this.persists = [];
+  }
+
+  toStrId(id) {
+    return typeof id === 'string' ? id : id.toString();
+  }
+
+  persist(query) {
+    this.persists.push(sift(query || {}));
+    this.db.idbCheckInit();
+  }
+
+  shouldPersist(doc) {
+    for (let query of this.persists) {
+      if (query(doc))
+        return true;
+    }
+    return false;
   }
 
   find(query) {
@@ -131,6 +195,15 @@ class Collection {
 
     const strId = typeof document._id === 'string' ? document._id : document._id.toString();
     this.documents.set(strId, document);
+
+    if (this.shouldPersist(document))
+      this.db.idbPromise.then(db => {
+        const tx = db.transaction(this.name, 'readwrite');
+        tx.objectStore(this.name)
+          .put(this.idbPrepareDoc(document), this.toStrId(document._id));
+        return tx.complete;
+      });
+
     this.sendChanges('insert', document._id, { fullDocument: document });
   }
 
@@ -160,6 +233,14 @@ class Collection {
         + JSON.stringify(_id));
 
     this.documents.delete(_id);
+
+    // always "persist" deletes
+    this.db.idbPromise.then(db => {
+      const tx = db.transaction(this.name, 'readwrite');
+      tx.objectStore(this.name).delete(this.toStrId(newDoc._id));
+      return tx.complete;
+    });
+
     this.sendChanges('delete', _id);
   }
 
@@ -214,6 +295,14 @@ class Collection {
       }
     });
 
+    if (this.shouldPersist(newDoc))
+      this.db.idbPromise.then(db => {
+        const tx = db.transaction(this.name, 'readwrite');
+        tx.objectStore(this.name)
+          .put(this.idbPrepareDoc(newDoc), this.toStrId(newDoc._id));
+        return tx.complete;
+      });
+
     return newDoc;
   }
 
@@ -247,6 +336,14 @@ class Collection {
     }
   }
 
+  idbPrepareDoc(_doc) {
+    return _doc;
+    /*
+    const doc = Object.assign({}, _doc);
+    doc._id = typeof doc._id === 'string' ? doc._id : doc._id.toString();
+    return doc;
+    */
+  }
 }
 
 class Cursor {
