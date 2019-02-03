@@ -13,10 +13,10 @@ module.exports = {
         // TODO, getNext async loop?
         result.toArray((err, results) => {
           // console.log('results', results);
-          this.send(cmd.sid, { type: 'subscription-start', name: cmd.name });
+          this.send(cmd.sid, { type: 'sub_start', name: cmd.name });
           for (let row of results)
             this.send(cmd.sid, { type: 'insert', coll: collName, doc: row });
-          this.send(cmd.sid, { type: 'subscription-ready' });
+          this.send(cmd.sid, { type: 'sub_ready', name: cmd.name });
 
           this.liveQueryOn(cmd, collName, query);
         });

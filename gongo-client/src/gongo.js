@@ -3,6 +3,7 @@ import sift from "sift";
 import ObjectID from 'bson-objectid';
 
 import handlers from './handlers';
+import Subscription from './subscription';
 
 // Expects similar code in gongo-server/server.js
 ARSON.registerType('ObjectID', {
@@ -22,22 +23,24 @@ class Database {
     this.wsQueue = [];
 
     // check options too
-    this.subscriptions = [];
+    this.subscriptions = {};
   }
 
   connect(url) {
-    console.log('connected to ' + url);
+    console.log('connecting to ' + url);
     const ws = this.ws = new WebSocket(url);
 
     ws.onopen = () => {
+      console.log('connected');
       this.wsReady = true;
       this.wsQueue.forEach(msg => this.ws.send(ARSON.stringify(msg)));
       this.wsQueue = [];
 
-      this.subscriptions.forEach(sub => this.ws.send(ARSON.stringify({
-        type: 'subscribe',
-        name: sub,
-      })))
+      Object.values(this.subscriptions)
+        .forEach(({ name }) => this.ws.send(ARSON.stringify({
+          type: 'subscribe',
+          name,
+        })));
     }
 
     ws.onclose = () => {
@@ -75,16 +78,17 @@ class Database {
   subscribe(name) {
     //console.log('subscribe', name);
 
-    if (this.subscriptions.indexOf(name) !== -1)
-      return;
+    if (this.subscriptions[name])
+      return this.subscriptions[name];
 
-    this.subscriptions.push(name);
+    const sub = this.subscriptions[name] = new Subscription(this, name);
 
-    if (this.wsReady)
-      this.send({
-        type: 'subscribe',
-        name: name,
-      });
+    this.send({
+      type: 'subscribe',
+      name: name,
+    });
+
+    return sub;
   }
 
   collection(name) {
