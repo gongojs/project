@@ -132,6 +132,22 @@ class Database {
     });
 
     const db = await this.idbPromise;
+
+    /*
+
+    TODO, on connect, check if changes needed, then  reconnect and auto incr
+    version?  If no version specified.  Can let devs specify version for faster
+    upgrades.
+
+    for (let name in db.objectStoreNames)
+      if (!this.collections.has(name))
+        db._db.deleteObjectStore(name);
+
+    for (let [name] of this.collections)
+      if (!db.objectStoreNames.contains(name))
+        db._db.createObjectStore(name);
+     */
+
     this.collections.forEach( async (col, name) => {
       log.debug('Begin populating from IndexedDB of ' + name);
       const docs = await db.transaction(name).objectStore(name).getAll();
