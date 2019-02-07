@@ -59,6 +59,12 @@ class Database {
       })));
   }
 
+  sendPendingChanges() {
+    this.collections.forEach(col => {
+      const changes = col.find({ _pendingSince: { $exists: true }}).toArraySync();
+    });
+  }
+
   connect(url) {
     log.debug('Connecting to ' + url + '...');
     const ws = this.ws = new WebSocket(url);
@@ -100,8 +106,10 @@ class Database {
   send(msg) {
     if (this.wsReady)
       this.ws.send(ARSON.stringify(msg))
-    else
-      this.wsQueue.push(msg);
+    else {
+      throw new Error("should handle offline better");
+      // this.wsQueue.push(msg);
+    }
   }
 
   subscribe(name) {
