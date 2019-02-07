@@ -42,6 +42,21 @@ class Database {
     this.subscriptions = {};
 
     this.idbIsOpen = false;
+    this.idbIsLoaded = false;
+    this.persistedQueriesExist = false;
+  }
+
+  sendSubscriptions() {
+    if (this.persistedQueriesExist && !this.idbIsLoaded) {
+      log.debug("Waiting for IDB to load before sending subscriptions");
+      return;
+    }
+
+    Object.values(this.subscriptions)
+      .forEach(({ name }) => this.ws.send(ARSON.stringify({
+        type: 'subscribe',
+        name,
+      })));
   }
 
   connect(url) {
@@ -54,11 +69,7 @@ class Database {
       this.wsQueue.forEach(msg => this.ws.send(ARSON.stringify(msg)));
       this.wsQueue = [];
 
-      Object.values(this.subscriptions)
-        .forEach(({ name }) => this.ws.send(ARSON.stringify({
-          type: 'subscribe',
-          name,
-        })));
+      this.sendSubscriptions();
     }
 
     ws.onclose = () => {
@@ -101,10 +112,12 @@ class Database {
 
     const sub = this.subscriptions[name] = new Subscription(this, name);
 
-    this.send({
-      type: 'subscribe',
-      name: name,
-    });
+    // don't queue this as this.sendSubscriptions called on every (re-)connect
+    if (this.wsReady)
+      this.send({
+        type: 'subscribe',
+        name: name,
+      });
 
     return sub;
   }
@@ -118,7 +131,7 @@ class Database {
 
   idbCheckInit() {
     if (this.idbIsOpen)
-      throw new Error("idb already open");
+      throw new Error("idb already open; TODO explain better when to call persist()");
     else
       setTimeout( () => this.idbOpen(), 0 );
   }
@@ -148,6 +161,7 @@ class Database {
         db._db.createObjectStore(name);
      */
 
+    let i;
     this.collections.forEach( async (col, name) => {
       log.debug('Begin populating from IndexedDB of ' + name);
       const docs = await db.transaction(name).objectStore(name).getAll();
@@ -157,7 +171,13 @@ class Database {
         col.documents.set(strId, document);
       });
       log.debug('Finished populating from IndexedDB of ' + name);
+
+      if (i === this.collections.size) {
+        this.idbIsLoaded = true;
+        this.sendSubscriptions();
+      }
     });
+
   }
 
 }
@@ -178,6 +198,7 @@ class Collection {
   }
 
   persist(query) {
+    this.db.persistedQueriesExist = true;
     this.persists.push(sift(query || {}));
     this.db.idbCheckInit();
   }
