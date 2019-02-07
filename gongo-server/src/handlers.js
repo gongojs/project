@@ -14,8 +14,14 @@ module.exports = {
         result.toArray((err, results) => {
           // console.log('results', results);
           this.send(cmd.sid, { type: 'sub_start', name: cmd.name });
-          for (let row of results)
-            this.send(cmd.sid, { type: 'insert', coll: collName, doc: row });
+
+          for (let row of results) {
+            if (row.__deleted)
+              this.send(cmd.sid, { type: 'delete', coll: collName, _id: row._id });
+            else
+              this.send(cmd.sid, { type: 'insert', coll: collName, doc: row });
+          }
+
           this.send(cmd.sid, { type: 'sub_ready', name: cmd.name });
 
           this.liveQueryOn(cmd, collName, query);
@@ -28,7 +34,8 @@ module.exports = {
   },
 
   insert(cmd) {
-    delete cmd.doc._pendingSince;
+    delete cmd.doc.__pendingInsert;
+    delete cmd.doc.__pendingSince;
     // console.log('insert', cmd.coll, cmd.doc);
     this.db.collection(cmd.coll).insertOne(cmd.doc);
   },
@@ -36,9 +43,15 @@ module.exports = {
   remove(cmd) {
     if (typeof cmd.query === 'string')
       cmd.query = { _id: this.mongoObjectID(cmd.query) };
+    else if (cmd.query instanceof this.mongoObjectID)
+      cmd.query = { _id: cmd.query };
 
     // console.log('remove', cmd.coll, cmd.query);
-    this.db.collection(cmd.coll).removeMany(cmd.query);
+
+    // this.db.collection(cmd.coll).removeMany(cmd.query);
+    this.db.collection(cmd.coll).updateOne(cmd.query, {
+      $set: { __deleted: true }
+    });
   },
 
   update(cmd) {

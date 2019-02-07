@@ -47,11 +47,7 @@ class Database {
   }
 
   sendSubscriptions() {
-    if (this.persistedQueriesExist && !this.idbIsLoaded) {
-      log.debug("Waiting for IDB to load before sending subscriptions");
-      return;
-    }
-
+    log.debug("Sending subscriptions");
     Object.values(this.subscriptions)
       .forEach(({ name }) => this.ws.send(ARSON.stringify({
         type: 'subscribe',
@@ -60,12 +56,43 @@ class Database {
   }
 
   sendPendingChanges() {
-    this.collections.forEach(col => {
-      const changes = col.find({ _pendingSince: { $exists: true }}).toArraySync();
+    log.debug("Sending pending changes");
+    this.collections.forEach(coll => {
+      coll.find({ __pendingSince: { $exists: true }}, { includePendingDeletes: true })
+        .toArraySync()
+        .forEach(doc => {
+          console.log(doc);
+
+          if (doc.__pendingInsert)
+            this.send({
+              type: 'insert',
+              coll: coll.name,
+              doc
+            });
+          else if (doc.__pendingDelete) {
+            this.send({
+              type: 'remove',
+              coll: coll.name,
+              query: doc._id
+            });
+          }
+        });
     });
   }
 
+  disconnect() {
+    this.autoReconnect = false;
+    this.ws.close();
+  }
+
   connect(url) {
+    if (url && !this.url)
+      this.url = url;
+    else if (this.url && !url)
+      url = this.url;
+
+    this.autoReconnect = false;
+
     log.debug('Connecting to ' + url + '...');
     const ws = this.ws = new WebSocket(url);
 
@@ -75,20 +102,29 @@ class Database {
       this.wsQueue.forEach(msg => this.ws.send(ARSON.stringify(msg)));
       this.wsQueue = [];
 
+      if (this.persistedQueriesExist && !this.idbIsLoaded) {
+        log.debug("Waiting for IDB to load before sending changes + subscriptions");
+        return;
+      }
+
+      this.sendPendingChanges();
       this.sendSubscriptions();
     }
 
     ws.onclose = () => {
       this.wsReady = false;
-      log.warn('Disconnected from ' + url);
+      log.info('Disconnected from ' + url);
+
       // TODO, better reconnect stuff
-      setTimeout(() => this.connect(url), 1000);
+      if (this.autoReconnect)
+        setTimeout(() => this.connect(url), 1000);
     };
 
     ws.onmessage = messageEvent => {
       let cmd;
       try {
         cmd = ARSON.parse(messageEvent.data);
+        log.debug('wsGet', cmd);
       } catch (e) {
         console.log(e);
         return;
@@ -104,9 +140,10 @@ class Database {
   }
 
   send(msg) {
-    if (this.wsReady)
+    if (this.wsReady) {
+      log.debug('wsSend', msg);
       this.ws.send(ARSON.stringify(msg))
-    else {
+    } else {
       throw new Error("should handle offline better");
       // this.wsQueue.push(msg);
     }
@@ -169,7 +206,7 @@ class Database {
         db._db.createObjectStore(name);
      */
 
-    let i;
+    let i = 0;
     this.collections.forEach( async (col, name) => {
       log.debug('Begin populating from IndexedDB of ' + name);
       const docs = await db.transaction(name).objectStore(name).getAll();
@@ -180,8 +217,10 @@ class Database {
       });
       log.debug('Finished populating from IndexedDB of ' + name);
 
-      if (i === this.collections.size) {
+      if (++i === this.collections.size) {
         this.idbIsLoaded = true;
+        log.debug('Finished populating from IndexedDB of all collections');
+        this.sendPendingChanges();
         this.sendSubscriptions();
       }
     });
@@ -219,8 +258,8 @@ class Collection {
     return false;
   }
 
-  find(query) {
-    return new Cursor(this, query);
+  find(query, options) {
+    return new Cursor(this, query, options);
   }
 
   sendChanges(operationType, _id, data) {
@@ -260,44 +299,72 @@ class Collection {
 
     const toSendDoc = Object.assign({}, document);
 
-    document._pendingSince = Date.now();
+    document.__pendingInsert = true;
+    document.__pendingSince = Date.now();
     this._insert(document);
 
-    this.db.send({
-      type: 'insert',
-      coll: this.name,
-      doc: toSendDoc
-    });
+    if (this.db.wsReady)
+      this.db.send({
+        type: 'insert',
+        coll: this.name,
+        doc: toSendDoc
+      });
 
     return toSendDoc;
   }
 
-  _remove(_id) {
+  _remove(_id, fromServer) {
     if (typeof _id !== 'string')
       throw new Error("_remove(_id) expects a string id only, not: "
         + JSON.stringify(_id));
 
-    this.documents.delete(_id);
+    // actual delete vs pending delete
+    if (fromServer) {
 
-    // always "persist" deletes
-    this.db.idbPromise.then(db => {
-      const tx = db.transaction(this.name, 'readwrite');
-      tx.objectStore(this.name).delete(this.toStrId(newDoc._id));
-      return tx.complete;
-    });
+      if (!this.documents.has(_id))
+        return;
 
-    this.sendChanges('delete', _id);
+      this.documents.delete(_id);
+
+      // always "persist" deletes, regardless of persist query
+      this.db.idbPromise.then(db => {
+        const tx = db.transaction(this.name, 'readwrite');
+        tx.objectStore(this.name).delete(this.toStrId(_id));
+        return tx.complete;
+      });
+
+      // TODO, different event than "update" for this case?
+      this.sendChanges('update', _id);
+
+    } else {
+
+      const doc = this.documents.get(_id);
+      doc.__pendingDelete = true;
+      doc.__pendingSince = Date.now();
+
+      this.db.idbPromise.then(db => {
+        const tx = db.transaction(this.name, 'readwrite');
+        tx.objectStore(this.name)
+          .put(this.idbPrepareDoc(doc), this.toStrId(_id));
+        return tx.complete;
+      });
+
+      this.sendChanges('delete', _id);
+
+    }
+
   }
 
   remove(idOrSelector) {
     if (typeof idOrSelector === 'string') {
 
       this._remove(idOrSelector);
-      this.db.send({
-        type: 'remove',
-        coll: this.name,
-        query: idOrSelector
-      });
+      if (this.db.wsReady)
+        this.db.send({
+          type: 'remove',
+          coll: this.name,
+          query: idOrSelector
+        });
 
     } else if (typeof idOrSelector === 'object') {
 
@@ -305,11 +372,12 @@ class Collection {
       for (let pair of this.documents) {
         if (query(pair[1])) {
           this._remove(pair[0]);
-          this.db.send({
-            type: 'remove',
-            coll: this.name,
-            query: pair[0]
-          });
+          if (this.db.wsReady)
+            this.db.send({
+              type: 'remove',
+              coll: this.name,
+              query: pair[0]
+            });
         }
       }
 
@@ -393,10 +461,19 @@ class Collection {
 
 class Cursor {
 
-  constructor(collection, query) {
+  constructor(collection, query, options) {
     this.collection = collection;
+
+    if (!query)
+      query = {};
+    if (!options)
+      options = {};
+
+    if (!options.includePendingDeletes)
+      query.__pendingDelete = { $exists: false };
+
     this._query = query;
-    this.query = sift(query || {});
+    this.query = sift(query);
   }
 
   toArray() {

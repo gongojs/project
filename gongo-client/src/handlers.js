@@ -3,19 +3,19 @@ export default {
   // --- data ---
 
   insert(cmd) {
-    this.collection(cmd.coll)._insert(cmd.doc);
+    this.collection(cmd.coll)._insert(cmd.doc, true);
   },
 
   delete(cmd) {
     // console.log(cmd);
     const strId = typeof cmd._id === 'string' ? cmd._id : cmd._id.toString();
-    this.collection(cmd.coll)._remove(strId);
+    this.collection(cmd.coll)._remove(strId, true);
   },
 
   update(cmd) {
     // console.log(cmd);
     const strId = typeof cmd._id === 'string' ? cmd._id : cmd._id.toString();
-    this.collection(cmd.coll)._update(strId, cmd.update);
+    this.collection(cmd.coll)._update(strId, cmd.update, true);
   },
 
   // --- subs ---

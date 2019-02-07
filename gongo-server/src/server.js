@@ -187,15 +187,23 @@ class GongoServer {
     } else if (change.operationType === 'update') {
 
       //console.log('onChange update', coll, _id);
-      this.sendToMatchingWatchers(coll, {
-        type: 'update',
-        coll: coll,
-        _id,
-        update: {
-          $set: change.updateDescription.updatedFields,
-          $unset: change.updateDescription.removedFields
-        }
-      });
+
+      if (change.updateDescription.updatedFields.__deleted)
+        this.sendToMatchingWatchers(coll, {
+          type: 'delete',
+          coll: coll,
+          _id
+        });
+      else
+        this.sendToMatchingWatchers(coll, {
+          type: 'update',
+          coll: coll,
+          _id,
+          update: {
+            $set: change.updateDescription.updatedFields,
+            $unset: change.updateDescription.removedFields
+          }
+        });
 
     } else {
 
