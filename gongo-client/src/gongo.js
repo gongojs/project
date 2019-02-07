@@ -400,6 +400,12 @@ class Cursor {
   }
 
   toArray() {
+    return new Promise((resolve, reject) => {
+      resolve(this.toArraySync());
+    });
+  }
+
+  toArraySync() {
     const out = [];
     for (let pair of this.collection.documents)
       if (this.query(pair[1]))

@@ -31,10 +31,10 @@ function useGongoLive(cursorFunc, opts) {
   const changeStream = cursor.watch();
   changeStream.on('change', debounce(change => {
     log.debug('useGongoLive change', change);
-    setData(cursor.toArray())
+    setData(cursor.toArraySync())
   }, opts.debounce));
 
-  return cursor.toArray();
+  return cursor.toArraySync();
 }
 
 function useGongoSub(gongo, name, opts) {
