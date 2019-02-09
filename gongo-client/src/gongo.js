@@ -2,6 +2,8 @@ import ARSON from 'arson';
 import sift from "sift";
 import ObjectID from 'bson-objectid';
 import { openDb, deleteDb } from 'idb';
+import modify from 'modifyjs';
+import jsonpatch from 'fast-json-patch';
 
 import { Log } from './utils';
 import handlers from './handlers';
@@ -61,7 +63,7 @@ class Database {
       coll.find({ __pendingSince: { $exists: true }}, { includePendingDeletes: true })
         .toArraySync()
         .forEach(doc => {
-          console.log(doc);
+          log.debug(doc);
 
           if (doc.__pendingInsert)
             this.send({
@@ -69,11 +71,25 @@ class Database {
               coll: coll.name,
               doc
             });
-          else if (doc.__pendingDelete) {
+          else if (doc.__pendingDelete)
             this.send({
               type: 'remove',
               coll: coll.name,
               query: doc._id
+            });
+          else if (doc.__pendingBase) {
+            const oldDoc = doc.__pendingBase;
+            delete oldDoc._id;
+            const newDoc = Object.assign({}, doc);
+            delete newDoc._id;
+            delete newDoc.__pendingBase;
+            delete newDoc.__pendingSince;
+            this.send({
+              type: 'patch',
+              coll: coll.name,
+              query: doc._id,
+              patch: jsonpatch.compare(oldDoc, newDoc),
+              since: doc.__pendingSince,
             });
           }
         });
@@ -389,19 +405,29 @@ class Collection {
     }
   }
 
-  _update(idOrSelector, newDocOrChanges) {
-    const _id = idOrSelector;
-    const oldDoc = this.documents.get(_id);
+  _update(strId, newDocOrChanges) {
+    if (typeof strId !== 'string')
+      throw new Error("_update(id, ...) expects string id, not " + JSON.stringify(strId));
 
-    // TODO think again about how to verify returned data
+    const oldDoc = this.documents.get(strId);
+
     if (!oldDoc)
-      return;
+      throw new Error("updateId(id, ...) called with id with no matches " + strId);
 
-    // XXX TODO
-    const newDoc = { ...oldDoc, ...newDocOrChanges.$set };
+    const newDoc = modify(oldDoc, newDocOrChanges);
+    fixObjIds(newDoc);
 
-    this.documents.set(_id, newDoc);
-    this.sendChanges('update', _id, {
+    // TODO, bail on no actual changes
+    // return false;
+
+    // allow multiple updates
+    if (!newDoc.__pendingSince) {
+      newDoc.__pendingSince = Date.now();
+      newDoc.__pendingBase = oldDoc;
+    }
+
+    this.documents.set(strId, newDoc);
+    this.sendChanges('update', newDoc._id, {
       updateDescription: {
         updatedFields: newDocOrChanges.$set,
         removedFields: []
@@ -412,8 +438,16 @@ class Collection {
       this.db.idbPromise.then(db => {
         const tx = db.transaction(this.name, 'readwrite');
         tx.objectStore(this.name)
-          .put(this.idbPrepareDoc(newDoc), this.toStrId(newDoc._id));
+          .put(this.idbPrepareDoc(newDoc), strId);
         return tx.complete;
+      });
+
+    if (this.wsReady)
+      this.db.send({
+        type: 'update',
+        coll: this.name,
+        query: strId,
+        update: newDocOrChanges
       });
 
     return newDoc;
@@ -422,27 +456,29 @@ class Collection {
   update(idOrSelector, newDocOrChanges) {
     if (typeof idOrSelector === 'string') {
 
-      const newDoc = this._update(idOrSelector, newDocOrChanges);
-      this.db.send({
-        type: 'update',
-        coll: this.name,
-        query: idOrSelector,
-        update: newDocOrChanges
-      });
+      return this._update(idOrSelector, newDocOrChanges);
 
     } else if (typeof idOrSelector === 'object') {
 
       const query = sift(idOrSelector);
-      for (let pair of this.documents)
-        if (query(pair[1])) {
-          const newDoc = this._update(pair[0], newDocOrChanges);
-          this.db.send({
-            type: 'update',
-            coll: this.name,
-            query: pair[0],
-            update: newDocOrChanges
-          });
+
+      const updatedDocIds = [];
+      let matchedCount = 0;
+      let modifiedCount = 0;
+
+      for (let [id, doc] of this.documents)
+        if (query(doc)) {
+          matchedCount++;
+          if (this._update(id, newDocOrChanges)) {
+            modifiedCount++;
+            updatedDocIds.push(id);
+          };
         }
+      return {
+        matchedCount,
+        modifiedCount,
+        __updatedDocsIds: updatedDocIds,
+      };
 
     } else {
       throw new Error();

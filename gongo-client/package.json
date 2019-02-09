@@ -6,7 +6,9 @@
   "dependencies": {
     "arson": "^0.2.6",
     "bson-objectid": "^1.2.4",
+    "fast-json-patch": "^2.0.7",
     "idb": "^3.0.2",
+    "modifyjs": "^0.3.1",
     "sift": "^7.0.1"
   }
 }

@@ -1,3 +1,6 @@
+const jsonpatch = require('fast-json-patch');
+const toMongoDb = require('jsonpatch-to-mongodb');
+
 module.exports = {
 
   subscribe(cmd) {
@@ -59,7 +62,21 @@ module.exports = {
       cmd.query = { _id: this.mongoObjectID(cmd.query) };
 
     // console.log('update', cmd.coll, cmd.query);
-    this.db.collection(cmd.coll).updateMany(cmd.query, cmd.update);
-  }
+    this.db.collection(cmd.coll).updateOne(cmd.query, cmd.update);
+  },
+
+  patch(cmd) {
+    if (typeof cmd.query === 'string')
+      cmd.query = { _id: this.mongoObjectID(cmd.query) };
+    else if (cmd.query instanceof this.mongoObjectID)
+      cmd.query = { _id: cmd.query };
+    else
+      console.log('wtf is', cmd.query, JSON.stringify(cmd.query));
+
+    const update = toMongoDb(cmd.patch);
+
+    console.log('patch', cmd.coll, cmd.query, update);
+    this.db.collection(cmd.coll).updateOne(cmd.query, update);
+  },
 
 };

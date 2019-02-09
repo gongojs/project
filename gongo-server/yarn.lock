@@ -24,6 +24,30 @@ bufferutil@^4.0.1:
   dependencies:
     node-gyp-build "~3.7.0"
 
+deep-equal@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/deep-equal/-/deep-equal-1.0.1.tgz#f5d260292b660e084eff4cdbc9f08ad3247448b5"
+  integrity sha1-9dJgKStmDghO/0zbyfCK0yR0SLU=
+
+fast-json-patch@^2.0.7:
+  version "2.0.7"
+  resolved "https://registry.yarnpkg.com/fast-json-patch/-/fast-json-patch-2.0.7.tgz#55864b08b1e50381d2f37fd472bb2e18fe54a733"
+  integrity sha512-DQeoEyPYxdTtfmB3yDlxkLyKTdbJ6ABfFGcMynDqjvGhPYLto/pZyb/dG2Nyd/n9CArjEWN9ZST++AFmgzgbGw==
+  dependencies:
+    deep-equal "^1.0.1"
+
+jsonpatch-to-mongodb@^0.4.0:
+  version "0.4.0"
+  resolved "https://registry.yarnpkg.com/jsonpatch-to-mongodb/-/jsonpatch-to-mongodb-0.4.0.tgz#4f1462b23dd4db825025970e8ecb2a6b45b36b65"
+  integrity sha512-6tuBo5jPsNRaMqTSdm2USWEqnfNnuPRnHRZd6mPToCC42Wkat+9XDUeKyoQXiKZFZ6Us8M1nq+GtNXESbMhdlw==
+  dependencies:
+    jsonpath-to-dot "~0.2.0"
+
+jsonpath-to-dot@~0.2.0:
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/jsonpath-to-dot/-/jsonpath-to-dot-0.2.0.tgz#d000d02ac5bf87ef8895e239ee04c606a133f8c5"
+  integrity sha1-0ADQKsW/h++IleI57gTGBqEz+MU=
+
 memory-pager@^1.0.2:
   version "1.5.0"
   resolved "https://registry.yarnpkg.com/memory-pager/-/memory-pager-1.5.0.tgz#d8751655d22d384682741c972f2c3d6dfa3e66b5"
