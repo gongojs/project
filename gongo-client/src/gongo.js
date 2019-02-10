@@ -196,8 +196,11 @@ class Database {
   idbCheckInit() {
     if (this.idbIsOpen)
       throw new Error("idb already open; TODO explain better when to call persist()");
-    else
-      setTimeout( () => this.idbOpen(), 0 );
+    else if (this.idbOpenTimeout) {
+      clearTimeout(this.idbOpenTimeout);
+      this.idbOpenTimeout = setTimeout( () => this.idbOpen(), 0 );
+    } else
+      this.idbOpenTimeout = setTimeout( () => this.idbOpen(), 0 );
   }
 
   async idbOpen() {
@@ -579,6 +582,7 @@ class ChangeStream {
 const db = new Database();
 const local = db.collection('__gongo');
 local.isLocalCollection = true;
+local.persist({});
 
 export { Database };
 
