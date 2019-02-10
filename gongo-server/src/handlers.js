@@ -7,7 +7,7 @@ module.exports = {
     console.log(cmd.name, this.pubs);
 
     if (this.pubs[cmd.name]) {
-      const result = this.pubs[cmd.name](this.db);
+      const result = this.pubs[cmd.name](this.db, cmd.ats);
       const mCmd = result.cursorState.cmd;
       const [ dbName, collName ] = mCmd.find.split('.');
       const query = mCmd.query;
@@ -20,7 +20,7 @@ module.exports = {
 
           for (let row of results) {
             if (row.__deleted)
-              this.send(cmd.sid, { type: 'delete', coll: collName, _id: row._id });
+              this.send(cmd.sid, { type: 'delete', coll: collName, _id: row._id, updatedAt: row.__updatedAt });
             else
               this.send(cmd.sid, { type: 'insert', coll: collName, doc: row });
           }

@@ -48,12 +48,20 @@ class Database {
     this.persistedQueriesExist = false;
   }
 
+  getAts() {
+    const rows = this.gongoStore.find({ type: 'updatedAt' }).toArraySync();
+    const ats = {};
+    rows.forEach(({ name, updatedAt }) => ats[name] = updatedAt);
+    return ats;
+  }
+
   sendSubscriptions() {
     log.debug("Sending subscriptions");
     Object.values(this.subscriptions)
       .forEach(({ name }) => this.ws.send(ARSON.stringify({
         type: 'subscribe',
         name,
+        ats: this.getAts(),
       })));
   }
 
@@ -110,7 +118,7 @@ class Database {
     else if (this.url && !url)
       url = this.url;
 
-    this.autoReconnect = false;
+    this.autoReconnect = true;
 
     log.debug('Connecting to ' + url + '...');
     const ws = this.ws = new WebSocket(url);
@@ -181,6 +189,7 @@ class Database {
       this.wsSend({
         type: 'subscribe',
         name: name,
+        ats: this.getAts(),
       });
 
     return sub;
@@ -261,11 +270,24 @@ class Database {
       if (++i === this.collections.size) {
         this.idbIsLoaded = true;
         log.debug('Finished populating from IndexedDB of all collections');
+
+        const existing = this.gongoStore.find({ type: 'updatedAt' })
+          .toArraySync().map(row => row.name);
+
+        for (let [name, coll] of this.collections) {
+          if (!coll.isLocalCollection && !existing.includes(name)) {
+            this.gongoStore.insert({
+              type: 'updatedAt',
+              name: name,
+              updatedAt: new Date(0)
+            });
+          }
+        }
+
         this.sendPendingChanges();
         this.sendSubscriptions();
       }
     });
-
   }
 
 }
@@ -510,6 +532,17 @@ class Collection {
     }
   }
 
+  upsert(query, doc) {
+    // TODO use count() when avaialble
+    const existing = this.find(query).toArraySync();
+    if (existing) {
+      this.update(query, { $set: doc });
+    } else {
+      this.insert(doc);
+    }
+
+  }
+
   idbPrepareDoc(_doc) {
     return _doc;
     /*
@@ -580,9 +613,9 @@ class ChangeStream {
 }
 
 const db = new Database();
-const local = db.collection('__gongo');
-local.isLocalCollection = true;
-local.persist({});
+db.gongoStore = db.collection('__gongo');
+db.gongoStore.isLocalCollection = true;
+db.gongoStore.persist({});
 
 export { Database };
 

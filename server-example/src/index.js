@@ -6,7 +6,9 @@ const server = new GongoServer({
 
 server.listen(3000);
 
-server.publish('todos', db => db.collection('todos').find());
+server.publish('todos', (db,ats) => db.collection('todos').find({
+  __updatedAt: { $gt: ats.todos }
+}));
 
 /*
 setTimeout(() => {
