@@ -1,17 +1,16 @@
-# DO. NOT. USE. THIS.  Discuss in github issues.
-
 # gongo
 
-Reactive, realtime queries supporting offline and a 👌 developer experience.
+Reactive, realtime, offline queries with a 👌 developer experience.
+
+**In active development, please give feedback GitHub issues**
 
 Copyright (c) 2019 by Gadi Cohen.  Released under the [MIT license](./LICENSE.txt).
 
 ## Features / TODO
 
-* Use Mongo once, on the client
-* Reactive, realtime (live) queries
-* Optimistic updates for free
-* Persists offline (with IndexedDB)
+* Client-side mongo-like database makes CRUD operations a joy
+* Queries are reactive and realtime (live), with optimistic updates for free
+* Works offline, syncs on reconnect, persists with IndexedDB
 * Great experience to use with React, etc.
 * Highly scalable
 
