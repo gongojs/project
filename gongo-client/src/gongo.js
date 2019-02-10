@@ -385,14 +385,14 @@ class Collection {
     } else if (typeof idOrSelector === 'object') {
 
       const query = sift(idOrSelector);
-      for (let pair of this.documents) {
-        if (query(pair[1])) {
-          this._remove(pair[0]);
+      for (let [id, doc] of this.documents) {
+        if (query(doc)) {
+          this._remove(id);
           if (this.db.wsReady)
             this.db.send({
               type: 'remove',
               coll: this.name,
-              query: pair[0]
+              query: id
             });
         }
       }
