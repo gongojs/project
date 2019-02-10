@@ -60,19 +60,22 @@ class Database {
   sendPendingChanges() {
     log.debug("Sending pending changes");
     this.collections.forEach(coll => {
+      if (coll.isLocalCollection)
+        return;
+
       coll.find({ __pendingSince: { $exists: true }}, { includePendingDeletes: true })
         .toArraySync()
         .forEach(doc => {
           log.debug(doc);
 
           if (doc.__pendingInsert)
-            this.send({
+            this.wsSend({
               type: 'insert',
               coll: coll.name,
               doc
             });
           else if (doc.__pendingDelete)
-            this.send({
+            this.wsSend({
               type: 'remove',
               coll: coll.name,
               query: doc._id
@@ -84,7 +87,7 @@ class Database {
             delete newDoc._id;
             delete newDoc.__pendingBase;
             delete newDoc.__pendingSince;
-            this.send({
+            this.wsSend({
               type: 'patch',
               coll: coll.name,
               query: doc._id,
@@ -155,7 +158,7 @@ class Database {
 
   }
 
-  send(msg) {
+  wsSend(msg) {
     if (this.wsReady) {
       log.debug('wsSend', msg);
       this.ws.send(ARSON.stringify(msg))
@@ -174,8 +177,8 @@ class Database {
     const sub = this.subscriptions[name] = new Subscription(this, name);
 
     // don't queue this as this.sendSubscriptions called on every (re-)connect
-    if (this.wsReady)
-      this.send({
+    if (this.wsReady && !this.isLocalCollection)
+      this.wsSend({
         type: 'subscribe',
         name: name,
       });
@@ -200,27 +203,46 @@ class Database {
   async idbOpen() {
     log.debug('Opening IDB "gongo" database');
     this.idbIsOpen = true;
-    this.idbPromise = openDb('gongo', 1, upgradeDB => {
-      log.info('Creating IDB "gongo" database');
-      this.collections.forEach( (col,name) => upgradeDB.createObjectStore(name) );
+
+    if (!this.idbDbVersion)
+      this.idbDbVersion = 1;
+
+    this.idbPromise = openDb('gongo', this.idbDbVersion, upgradeDB => {
+      log.info('Upgrading IDB "gongo" database v' + this.idbDbVersion);
+
+      for (let name of upgradeDB._db.objectStoreNames)
+        if (!this.collections.has(name))
+          upgradeDB.deleteObjectStore(name);
+
+      for (let [name] of this.collections)
+        if (!upgradeDB._db.objectStoreNames.contains(name))
+          upgradeDB.createObjectStore(name);
     });
 
     const db = await this.idbPromise;
 
-    /*
+    let upgradeNeeded = false;
+    for (let name of db.objectStoreNames)
+      if (!this.collections.has(name)) {
+        upgradeNeeded = true;
+        break;
+      }
 
-    TODO, on connect, check if changes needed, then  reconnect and auto incr
-    version?  If no version specified.  Can let devs specify version for faster
-    upgrades.
+    if (!upgradeNeeded)
+      for (let [name] of this.collections)
+        if (!db.objectStoreNames.contains(name)) {
+          upgradeNeeded = true;
+          break;
+        }
 
-    for (let name in db.objectStoreNames)
-      if (!this.collections.has(name))
-        db._db.deleteObjectStore(name);
+    if (upgradeNeeded) {
+      this.idbDbVersion = db.version + 1;
+      db.close();
+      this.idbOpen();
+      return;
+    }
 
-    for (let [name] of this.collections)
-      if (!db.objectStoreNames.contains(name))
-        db._db.createObjectStore(name);
-     */
+    window.db = db;
 
     let i = 0;
     this.collections.forEach( async (col, name) => {
@@ -319,8 +341,8 @@ class Collection {
     document.__pendingSince = Date.now();
     this._insert(document);
 
-    if (this.db.wsReady)
-      this.db.send({
+    if (this.db.wsReady && !this.isLocalCollection)
+      this.db.wsSend({
         type: 'insert',
         coll: this.name,
         doc: toSendDoc
@@ -375,8 +397,8 @@ class Collection {
     if (typeof idOrSelector === 'string') {
 
       this._remove(idOrSelector);
-      if (this.db.wsReady)
-        this.db.send({
+      if (this.db.wsReady && !this.isLocalCollection)
+        this.db.wsSend({
           type: 'remove',
           coll: this.name,
           query: idOrSelector
@@ -388,8 +410,8 @@ class Collection {
       for (let [id, doc] of this.documents) {
         if (query(doc)) {
           this._remove(id);
-          if (this.db.wsReady)
-            this.db.send({
+          if (this.db.wsReady && !this.isLocalCollection)
+            this.db.wsSend({
               type: 'remove',
               coll: this.name,
               query: id
@@ -442,8 +464,8 @@ class Collection {
         return tx.complete;
       });
 
-    if (this.wsReady)
-      this.db.send({
+    if (this.wsReady && !this.isLocalCollection)
+      this.db.wsSend({
         type: 'update',
         coll: this.name,
         query: strId,
@@ -555,6 +577,9 @@ class ChangeStream {
 }
 
 const db = new Database();
+const local = db.collection('__gongo');
+local.isLocalCollection = true;
+
 export { Database };
 
 export default db;
