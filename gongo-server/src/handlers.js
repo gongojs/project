@@ -40,6 +40,8 @@ module.exports = {
     delete cmd.doc.__pendingInsert;
     delete cmd.doc.__pendingSince;
     // console.log('insert', cmd.coll, cmd.doc);
+
+    cmd.doc.__updatedAt = new Date();
     this.db.collection(cmd.coll).insertOne(cmd.doc);
   },
 
@@ -53,7 +55,7 @@ module.exports = {
 
     // this.db.collection(cmd.coll).removeMany(cmd.query);
     this.db.collection(cmd.coll).updateOne(cmd.query, {
-      $set: { __deleted: true }
+      $set: { __deleted: true, __updatedAt: new Date() }
     });
   },
 
@@ -62,6 +64,8 @@ module.exports = {
       cmd.query = { _id: this.mongoObjectID(cmd.query) };
 
     // console.log('update', cmd.coll, cmd.query);
+    if (!cmd.update.$set) cmd.update.$set = {};
+    cmd.update.$set.__updatedAt = Date.now();
     this.db.collection(cmd.coll).updateOne(cmd.query, cmd.update);
   },
 
@@ -74,6 +78,8 @@ module.exports = {
       console.log('wtf is', cmd.query, JSON.stringify(cmd.query));
 
     const update = toMongoDb(cmd.patch);
+    if (update.$set) update.$set = {};
+    update.$set.__updatedAt = Date.now();
 
     console.log('patch', cmd.coll, cmd.query, update);
     this.db.collection(cmd.coll).updateOne(cmd.query, update);

@@ -166,6 +166,8 @@ class GongoServer {
     const { db, coll } = change.ns;
     const _id = change.documentKey._id;
 
+    // TODO, change updated/deletes to use __updatedAt
+
     if (change.operationType === 'insert') {
 
       this.sendToMatchingWatchers(coll, {
