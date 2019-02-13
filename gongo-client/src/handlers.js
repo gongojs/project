@@ -4,6 +4,8 @@ export default {
   // subscriptions/queries on same collection, will we have wrong updatedAt
   // for them if they don't overlap.
 
+  // TODO, shouldPersist before gongoStore update.   should move logic to gongo.js
+
   // --- data ---
 
   insert(cmd) {
