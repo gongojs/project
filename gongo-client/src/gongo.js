@@ -267,6 +267,8 @@ class Database {
       });
       log.debug('Finished populating from IndexedDB of ' + name);
 
+      col.sendChanges('ready');
+
       if (++i === this.collections.size) {
         this.idbIsLoaded = true;
         log.debug('Finished populating from IndexedDB of all collections');
