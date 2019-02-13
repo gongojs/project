@@ -583,17 +583,48 @@ class Cursor {
     for (let pair of this.collection.documents)
       if (this.query(pair[1]))
         out.push(pair[1]);
-    return out;
+
+    if (this.sortFunc)
+      out.sort(this.sortFunc);
+
+    if (this.limitBy)
+      return out.slice(0, this.limitBy);
+    else
+      return out;
   }
 
   watch() {
     return new ChangeStream(this);
   }
 
-  sort() {
+  // https://mongodb.github.io/node-mongodb-native/api-generated/cursor.html#sort
+  sort(keyOrList, direction) {
+    if (typeof keyOrList === 'string') {
+
+      const key = keyOrList;
+
+      if (direction === 'asc' || direction === 'ascending' || direction === 1)
+        this.sortFunc = (a,b) => a[key] - b[key];
+      else if (direction === 'desc' || direction === 'descending' || direction === -1)
+        this.sortFunc = (a,b) => b[key] - a[key];
+      else
+        throw new Error("Invalid direction for sort(key, direction), expected "
+          + "'asc', 'ascending', 1, 'desc', 'descending', -1, but got "
+          + JSON.stringify(direction));
+
+    } else {
+
+      throw new Error("sort(array) not done yet" + JSON.stringify(keyOrList));
+
+    }
+
     return this;
   }
 
+  limit(limit) {
+    this.limitBy = limit;
+    return this;
+  }
 }
 
 class ChangeStream {
