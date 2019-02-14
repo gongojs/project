@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-import gongo from 'gongo-client';
+import gongo, { ObjectID } from 'gongo-client';
 import { Log, debounce } from 'gongo-client/src/utils';
 
 const log = new Log('gongo-react');
@@ -53,4 +53,4 @@ function useGongoSub(gongo, name, opts) {
   return isReady;
 }
 
-export { gongo, useGongoLive, useGongoSub };
+export { gongo, ObjectID, useGongoLive, useGongoSub };

@@ -20,8 +20,8 @@ const log = new Log('gongo-client');
 // Fix ObjectIDs after restore from IDB
 function fixObjIds(obj) {
   Object.keys(obj).forEach(key => {
-    // for now just top-level
-    if (typeof obj[key] === 'object') {
+    // for now just top-level.  note: typeof null === 'object' per JS spec!
+    if (obj[key] !== null && typeof obj[key] === 'object') {
       const keys = Object.keys(obj[key]);
       if (keys.length === 1 && keys[0] === 'id')
         obj[key] = new ObjectID(obj[key].id)
@@ -653,6 +653,6 @@ db.gongoStore = db.collection('__gongo');
 db.gongoStore.isLocalCollection = true;
 db.gongoStore.persist({});
 
-export { Database };
+export { Database, ObjectID };
 
 export default db;
