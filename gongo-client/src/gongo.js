@@ -216,9 +216,7 @@ class Database {
     log.debug('Opening IDB "gongo" database');
     this.idbIsOpen = true;
 
-    if (!this.idbDbVersion)
-      this.idbDbVersion = 1;
-
+    // idbDbVersion is (purposefully) undefined for initial open
     this.idbPromise = openDb('gongo', this.idbDbVersion, upgradeDB => {
       log.info('Upgrading IDB "gongo" database v' + this.idbDbVersion);
 
@@ -230,6 +228,11 @@ class Database {
         if (!upgradeDB._db.objectStoreNames.contains(name))
           upgradeDB.createObjectStore(name);
     });
+
+    this.idbPromise.catch(e => {
+      console.log(e.message);
+      throw e;
+    })
 
     const db = await this.idbPromise;
 
