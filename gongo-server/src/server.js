@@ -27,6 +27,7 @@ class GongoServer {
     this.pubs = {};
 
     this.mongoUrl = opts.mongoUrl;
+    this.mongoConnectCount = 0;
     this.mongoConnect();
 
     this.changeStreams = {};
@@ -36,11 +37,19 @@ class GongoServer {
   mongoConnect() {
     this.mongoClient = new MongoClient(this.mongoUrl, { useNewUrlParser: true });
     this.mongoClient.connect(err => {
+      this.mongoConnectCount++;
       if (err) {
         if (process.env.NODE_ENV === 'development'
             && err.message === 'no primary found in replicaset or invalid replica set name') {
 
               console.log(err.name + ': ' + err.message);
+
+              if (this.mongoConnectCount === 1) {
+                console.log("Trying again...");
+                setTimeout(() => this.mongoConnect(), 5000);
+                return;
+              }
+
               console.log("As a convenience, we'll create one for you (since NODE_ENV=='development')");
               const url = this.mongoUrl.replace(/\?replicaSet=rs0$/, '');
               const client = new MongoClient(url, { useNewUrlParser: true });
