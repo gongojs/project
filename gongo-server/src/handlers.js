@@ -3,11 +3,17 @@ const toMongoDb = require('jsonpatch-to-mongodb');
 
 module.exports = {
 
+  auth(cmd) {
+    cmd.ws.gongoSessionId = cmd.sessionId;
+  },
+
   subscribe(cmd) {
+    const sid = cmd.ws.gongoSessionId;
     console.log(cmd.name, this.pubs);
+    // TODO, if we don't have a live connection to the database, queue request.
 
     if (this.pubs[cmd.name]) {
-      const result = this.pubs[cmd.name](this.db, cmd.ats);
+      const result = this.pubs[cmd.name](this.db, cmd.ats, sid);
       const mCmd = result.cursorState.cmd;
       const [ dbName, collName ] = mCmd.find.split('.');
       const query = mCmd.query;
