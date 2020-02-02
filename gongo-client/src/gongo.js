@@ -8,6 +8,7 @@ import jsonpatch from 'fast-json-patch';
 import { Log } from './utils';
 import handlers from './handlers';
 import Subscription from './subscription';
+import DefaultAuth from './auth';
 
 // Expects similar code in gongo-server/server.js
 ARSON.registerType('ObjectID', {
@@ -34,6 +35,8 @@ class Database {
   constructor(opts) {
     if (!opts)
       opts = {};
+
+    this.auth = new (opts.auth || DefaultAuth)(this);
 
     this.name = opts.name || 'default';
 
@@ -125,7 +128,9 @@ class Database {
 
     ws.onopen = () => {
       log.debug('Connected to ' + url);
+
       this.wsReady = true;
+      this.wsSend({ type: 'auth', sessionId: this.auth.sid });
       this.wsQueue.forEach(msg => this.ws.send(ARSON.stringify(msg)));
       this.wsQueue = [];
 
