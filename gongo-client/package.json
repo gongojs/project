@@ -10,5 +10,16 @@
     "idb": "^3.0.2",
     "modifyjs": "^0.3.1",
     "sift": "^7.0.1"
+  },
+  "devDependencies": {
+    "eslint": "^6.8.0",
+    "jest": "^25.1.0"
+  },
+  "scripts": {
+    "lint": "eslint",
+    "test": "jest"
+  },
+  "wallaby": {
+    "autoDetect": true
   }
 }
