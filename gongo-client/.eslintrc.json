@@ -1,0 +1,22 @@
+{
+
+  "env": {
+    "browser": true,
+    "es2017": true,
+    "jest": true,
+    "node": true
+  },
+
+  "rules": {
+    "strict": 0
+  },
+
+  "parserOptions": {
+    "ecmaVersion": 8,
+    "experimentalObjectRestSpread": true,
+    "sourceType": "script"
+  },
+
+  "extends": [ "eslint:recommended" ]
+
+}
