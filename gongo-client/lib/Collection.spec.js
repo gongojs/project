@@ -1,5 +1,38 @@
 const Collection = require('./Collection').default;
 const Cursor = require('./Cursor').default;
+const randomId = require('./Collection').randomId;
+
+describe('Other in Collection.js', () => {
+
+  describe('randomId', () => {
+
+    beforeAll(() => {
+      if (!window.crypto)
+        window.crypto = {
+          getRandomValues(arr) {
+            for (let i=0; i < arr.length; i++)
+              arr[i] = Math.floor(Math.random() * 100000);
+          },
+          isFake: true
+        }
+    });
+
+    afterAll(() => {
+      if (window.crypto.isFake)
+        delete window.crypto;
+    });
+
+    it('returns the right length', () => {
+      expect(randomId(5).length).toBe(5);
+    });
+
+    it('returns seemingly random results', () => {
+      expect(randomId(5)).not.toBe(randomId(5));
+    });
+
+  });
+
+});
 
 describe('Collection', () => {
   const FakeDb = {};
@@ -9,12 +42,6 @@ describe('Collection', () => {
 
     expect(col.db).toBe(FakeDb);
     expect(col).toBeInstanceOf(Collection);
-  });
-
-  it('find returns a Cursor', () => {
-    const col = new Collection(FakeDb, 'test');
-    const cursor = col.find({});
-    expect(cursor).toBeInstanceOf(Cursor);
   });
 
   describe('persistance', () => {
@@ -55,7 +82,9 @@ describe('Collection', () => {
 
   });
 
-  describe('_funcs', () => {
+  describe('CRUD', () => {
+
+    // check modify on pendingInsert
 
     describe('_insert', () => {
 
@@ -66,6 +95,52 @@ describe('Collection', () => {
 
         const result = col.findOne({});
         expect(result).toBe(doc);
+      });
+
+    });
+
+    describe('find', () => {
+
+      it('returns a Cursor', () => {
+        const col = new Collection(FakeDb, 'test');
+        const cursor = col.find({});
+        expect(cursor).toBeInstanceOf(Cursor);
+      });
+
+    });
+
+    describe('findOne', () => {
+
+      it('returns first match on find(query)', () => {
+        const col = new Collection(FakeDb, 'test');
+        const apple = { _id: 'apple' };
+        const banana = { _id: 'banana' };
+        col._insert(apple);
+        col._insert(banana);
+        expect(col.findOne({ _id: 'banana' })).toEqual(banana);
+      });
+
+      it('returns null on no match for find(query)', () => {
+        const col = new Collection(FakeDb, 'test');
+        const apple = { _id: 'apple' };
+        col._insert(apple);
+        expect(col.findOne({ _id: 'banana' })).toBe(null);
+      });
+
+      it('returns an exact record on find(strId)', () => {
+        const col = new Collection(FakeDb, 'test');
+        const apple = { _id: 'apple' };
+        const banana = { _id: 'banana' };
+        col._insert(apple);
+        col._insert(banana);
+        expect(col.findOne('apple')).toEqual(apple);
+      });
+
+      it('returns null on no record for find(strId)', () => {
+        const col = new Collection(FakeDb, 'test');
+        const apple = { _id: 'apple' };
+        col._insert(apple);
+        expect(col.findOne('banana')).toBe(null);
       });
 
     });

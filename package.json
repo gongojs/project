@@ -1,4 +1,7 @@
 {
   "private": true,
-  "workspaces": ["gongo-client", "gongo-react", "react-example"]
+  "workspaces": {
+    "packages": ["NO-gongo-client", "gongo-react", "react-example", "gc2example"],
+    "nohoist": ["**/react-scripts", "**/react-scripts/**"]
+  }
 }

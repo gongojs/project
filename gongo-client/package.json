@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "idb": "^5.0.1",
+    "modifyjs": "^0.3.1",
     "sift": "^11.1.2"
   }
 }

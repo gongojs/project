@@ -38,10 +38,6 @@ class Cursor {
       return out;
   }
 
-  watch() {
-    return new ChangeStream(this);
-  }
-
   // https://mongodb.github.io/node-mongodb-native/api-generated/cursor.html#sort
   sort(keyOrList, direction) {
     if (typeof keyOrList === 'string') {

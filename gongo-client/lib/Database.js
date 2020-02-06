@@ -18,6 +18,16 @@ class Database {
     return this.collections.get(name);
   }
 
+  /**
+   * [getTime Returns the current UNIX epoc in milliseconds.  Always use this
+   *   for timestmaps in the database, as it may differ from the browser's
+   *   Date.now() if we synchronize time over the network.]
+   * @return {[Int]} [The current UNIX epoc in milliseconds.]
+   */
+  getTime() {
+    return Date.now();
+  }
+
 }
 
 module.exports = { __esModule: true, default: Database };

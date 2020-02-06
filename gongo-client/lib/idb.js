@@ -26,7 +26,7 @@ class GongoIDB {
   }
 
   checkInit() {
-    if (this.idbIsOpen)
+    if (this.isOpen)
       throw new Error("idb already open; TODO explain better when to call persist()");
     else if (this.openTimeout) {
       clearTimeout(this.openTimeout);
@@ -37,7 +37,7 @@ class GongoIDB {
 
   async open() {
     log.debug('Opening IDB "gongo" database');
-    this.idbIsOpen = true;
+    this.isOpen = true;
 
     // idbDbVersion is (purposefully) undefined for initial open
     this.idbPromise = openDB('gongo', this.idbDbVersion, {
